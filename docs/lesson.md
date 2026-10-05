@@ -48,3 +48,7 @@ Expected exit 2. Submit your two threat-model sentences, a vulnerable report, a 
 ## Agent-assisted exercise
 
 Load the repository's [SKILL.md](../SKILL.md) into an agent with repository access, or ask the agent to read it. Ask: “Model the read-shortlist feature, run both local demo profiles, and explain what the evidence does and does not verify.” This file accompanies the whole repository; copying the skill alone does not install the CLI. No Skool site changes are needed to use this lesson.
+
+## Optional extension: prove a database policy
+
+With PostgreSQL 16 already available, follow [the database exercise](postgres.md). Run secure, permissive and deny-all policies and compare the same CRUD expectations. Then review `examples/postgres/reviewed-policy.sql` and use the explicit reviewed-SQL command. Explain why passing that adapted policy does not verify your entire application schema or JWT verification. Attach its SQL digest and source migration revision to your review notes.
