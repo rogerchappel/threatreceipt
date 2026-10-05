@@ -18,7 +18,7 @@ try {
     process.stdout.write(args[0] === '--version' ? '0.1.0\n' : usage);
   } else {
     if (args[0] !== 'run' || !args[1] || args[1].startsWith('-')) throw new Error('usage');
-    let profile = 'secure', format = 'human', execute = false;
+    let profile = 'secure', format = 'human', execute = false, applicationCommit;
     const seen = new Set();
     for (let i = 2; i < args.length; i++) {
       const flag = args[i];
@@ -27,9 +27,11 @@ try {
       if (flag === '--execute') execute = true;
       else if (flag === '--fixture') profile = args[++i];
       else if (flag === '--format') format = args[++i];
+      else if (flag === '--application-commit') applicationCommit = args[++i];
       else throw new Error('unknown');
     }
     if (!['secure', 'vulnerable'].includes(profile) || !['human', 'json', 'junit'].includes(format)) throw new Error('option');
+    if (seen.has('--application-commit') && (typeof applicationCommit !== 'string' || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(applicationCommit))) throw new Error('revision');
     const file = await open(args[1], constants.O_RDONLY | constants.O_NONBLOCK);
     let manifest;
     try {
@@ -41,7 +43,7 @@ try {
       manifest = validateManifest(JSON.parse(bytes.subarray(0, bytesRead).toString('utf8')));
     } finally { await file.close(); }
     if (execute) fixture = await startFixture(profile);
-    const report = await runChecks(manifest, fixture?.origin, execute);
+    const report = await runChecks(manifest, fixture?.origin, execute, {httpFixture: profile, applicationCommit});
     process.stdout.write(formatReport(report, format));
     process.exitCode = exitCode(report);
   }
