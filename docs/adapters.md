@@ -13,7 +13,7 @@ ThreatReceipt's added value is traceability: a feature's threat is tied to a rev
 
 ## PostgreSQL acceptance criteria before claiming coverage
 
-Use a disposable local database with known synthetic rows and separate owner/other-tenant/anonymous roles. Check allowed and denied SELECT, INSERT, UPDATE and DELETE, including grants, non-owner execution context, JWT claims where applicable, RLS bypass/superuser hazards, and cross-tenant side effects. Roll back transactions and verify cleanup. Do not infer RLS protection from HTTP 403s or merely finding RLS enabled. The current [PostgreSQL adapter](postgres.md) implements two-tenant CRUD and transactional evidence on a constrained synthetic table. Anonymous-role behavior and full application-schema integration remain unverified. Without executing this adapter, database coverage remains inconclusive.
+Use a disposable local database with known synthetic rows and separate owner/other-tenant/anonymous roles. Check allowed and denied SELECT, INSERT, UPDATE and DELETE, including grants, non-owner execution context, JWT claims where applicable, RLS bypass/superuser hazards, and cross-tenant side effects. Roll back transactions and verify cleanup. Do not infer RLS protection from HTTP 403s or merely finding RLS enabled. The current [PostgreSQL adapter](postgres.md) implements two-tenant CRUD and transactional evidence on bundled synthetic policies only. External/reviewed SQL is disabled pending independent security validation. Anonymous-role behavior and full application-schema integration remain unverified. Without executing this adapter, database coverage remains inconclusive.
 
 ## Adapter execution boundary
 
