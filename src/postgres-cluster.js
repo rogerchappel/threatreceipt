@@ -4,15 +4,25 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
+export const MINIMUM_POSTGRES = '16.15';
+export function supportedPostgresVersion(version) {
+  const match=/^(?:postgres|psql|initdb|pg_isready) \(PostgreSQL\) 16\.(\d+)(?:\s|$)/.exec(version.trim());
+  return Boolean(match && Number.isSafeInteger(Number(match[1])) && Number(match[1])>=15);
+}
 export async function postgresBinaries() {
   for (const dir of ['/opt/homebrew/opt/postgresql@16/bin', '/usr/lib/postgresql/16/bin']) {
     try {
       const resolved = await realpath(dir);
-      const result = await boundedProcess(join(resolved, 'postgres'), ['--version'], {PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C'}, 3000);
-      if (result.code === 0 && /^postgres \(PostgreSQL\) 16\./.test(result.stdout.trim())) return {dir:resolved,version:result.stdout.trim()};
+      const versions=[];
+      for(const binary of ['postgres','psql','initdb','pg_isready']) {
+        const result=await boundedProcess(join(resolved,binary),['--version'],{PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C'},3000);
+        if(result.code!==0 || !supportedPostgresVersion(result.stdout)) throw new Error('Unsupported PostgreSQL tool version.');
+        versions.push(result.stdout.trim());
+      }
+      return {dir:resolved,version:versions[0]};
     } catch { /* No PATH fallback: do not discover arbitrary executable names. */ }
   }
-  throw new Error('PostgreSQL 16 is unavailable.');
+  throw new Error('PostgreSQL 16.15 or newer 16.x tooling is unavailable.');
 }
 /** Bounded subprocess with no shell, inherited credentials, or config environment. */
 export function boundedProcess(executable, args, env, timeout = 5000, signal = undefined) {

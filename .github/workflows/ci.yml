@@ -54,7 +54,7 @@ jobs:
       - name: Verify real PostgreSQL in pinned, network-isolated runtime
         shell: bash
         run: |
-          image='postgres:16.13-bookworm@sha256:472efd9a66f2b2f1a5aeb18b28de74332e6ef88c2b93a1a5d812fb6db67a5f60'
+          image='postgres:16.15-bookworm@sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67'
           docker pull "$image"
           run_postgres() {
           docker run --rm --network none --read-only --cap-drop ALL \
