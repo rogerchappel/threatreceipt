@@ -1,4 +1,10 @@
 import http from 'node:http';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+export const toolVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+const adapterDigest = createHash('sha256').update(readFileSync(new URL('./fixture.js', import.meta.url))).update(readFileSync(new URL('./runner.js', import.meta.url))).digest('hex');
+const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])])) : value;
+const exactKeys = (value, keys) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every(k => Object.hasOwn(value, k));
 import { CHECKS } from './manifest.js';
 // No redirects, DNS, proxy environment variables, cookies, or arbitrary targets.
 export async function requestFixture(origin, path) {
@@ -31,12 +37,15 @@ export async function requestFixture(origin, path) {
     req.on('error', reject);
   });
 }
-export async function runChecks(manifest, origin, execute) {
+export async function runChecks(manifest, origin, execute, context = {}) {
   const results = [];
   for (const threat of manifest.threats) {
     const result = { threat: threat.id, check: threat.check, invariant: CHECKS[threat.check], status: 'inconclusive', evidence: 'Not executed (dry run).' };
     if (execute) {
-      if (['postgres-rls', 'agent-injection'].includes(threat.check)) {
+      if (threat.check === 'postgres-rls' && context.postgresReport) {
+        for (const item of context.postgresReport.checks) results.push({threat: `${threat.id}:${item.id}`, check: threat.check, invariant: CHECKS[threat.check], status: item.status, evidence: item.evidence});
+        continue;
+      } else if (['postgres-rls', 'agent-injection'].includes(threat.check)) {
         result.evidence = 'Adapter unavailable; no coverage claimed.';
       } else {
         try {
@@ -48,7 +57,7 @@ export async function runChecks(manifest, origin, execute) {
           const records = actual.body?.records;
           const allowed = threat.check === 'owner-read';
           const payloadOK = allowed
-            ? Array.isArray(records) && records.length === 1 && records[0]?.id === 'alpha' && records[0]?.tenant === 'tenant-a' && records[0]?.value === 'synthetic-only'
+            ? exactKeys(actual.body, ['records']) && Array.isArray(records) && records.length === 1 && exactKeys(records[0], ['id', 'tenant', 'value']) && records[0]?.id === 'alpha' && records[0]?.tenant === 'tenant-a' && records[0]?.value === 'synthetic-only'
             : actual.body && !Array.isArray(actual.body) && Object.keys(actual.body).length === 1 && actual.body.error === ({401:'auth',403:'forbidden',404:'missing'}[expected]);
           result.status = actual.status === expected && payloadOK ? 'pass' : 'fail';
           result.evidence = `HTTP ${actual.status}; expected ${expected}; response contract ${payloadOK ? 'matched' : 'mismatched'}.`;
@@ -64,6 +73,6 @@ export async function runChecks(manifest, origin, execute) {
     if (!results.some(r => r.check === check)) results.push({threat: 'coverage-' + check, check, invariant: CHECKS[check], status:'inconclusive', evidence:'Adapter unavailable; no coverage claimed.'});
   }
   const summary = Object.fromEntries(['pass', 'fail', 'inconclusive'].map(s => [s, results.filter(r => r.status === s).length]));
-  return { schemaVersion: 1, feature: manifest.feature, mode: execute ? 'executed' : 'dry-run', summary, results };
+  return { schemaVersion: 2, provenance: { tool: { name: 'threatreceipt', version: toolVersion }, manifestSha256: createHash('sha256').update(JSON.stringify(canonical(manifest))).digest('hex'), adapters: [{ name: 'http-fixture', fixture: context.httpFixture ?? 'unspecified', sourceSha256: adapterDigest }, ...(context.postgresReport ? [context.postgresReport.provenance] : context.postgresPlanned ? [context.postgresPlanned] : [])], ...(context.applicationCommit ? {applicationCommit: {value: context.applicationCommit, independentlyVerified: false}} : {}) }, feature: manifest.feature, mode: execute ? 'executed' : 'dry-run', summary, results };
 }
 export function exitCode(report) { return report.summary.fail ? 1 : report.summary.inconclusive ? 2 : 0; }

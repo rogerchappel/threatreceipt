@@ -18,7 +18,7 @@ export function validateManifest(m) {
     || !Array.isArray(m.threats) || m.threats.length < 1 || m.threats.length > 32) invalid();
   const ids = new Set();
   for (const t of m.threats) {
-    if (!object(t, ['id', 'check']) || typeof t.id !== 'string' || !id.test(t.id) || ids.has(t.id)
+    if (!object(t, ['id', 'check']) || typeof t.id !== 'string' || !id.test(t.id) || t.id.startsWith('coverage-') || ids.has(t.id)
       || typeof t.check !== 'string' || !Object.hasOwn(CHECKS, t.check)) invalid();
     ids.add(t.id);
   }
