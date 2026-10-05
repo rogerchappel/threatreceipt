@@ -41,3 +41,41 @@ jobs:
           name: fixture-evidence-node-${{ matrix.node }}
           path: reports/
           retention-days: 7
+  postgres-16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Verify real PostgreSQL in pinned, network-isolated runtime
+        shell: bash
+        run: |
+          image='postgres:16.13-bookworm@sha256:472efd9a66f2b2f1a5aeb18b28de74332e6ef88c2b93a1a5d812fb6db67a5f60'
+          docker pull "$image"
+          run_postgres() {
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --pids-limit 128 --memory 512m \
+            --tmpfs /tmp:rw,nosuid,nodev,size=256m,mode=1777 \
+            --user postgres --workdir /work \
+            --env THREATRECEIPT_REQUIRE_POSTGRES=1 \
+            --mount "type=bind,src=$PWD,dst=/work,readonly" \
+            --mount "type=bind,src=$(command -v node),dst=/usr/local/bin/tr-node,readonly" \
+            --entrypoint /usr/local/bin/tr-node "$image" \
+            "$@"
+          }
+          run_postgres --test test/postgres.test.js
+          mkdir -p reports
+          set +e
+          run_postgres bin/threatreceipt.js run examples/shortlist.json --postgres secure --execute --format json > reports/postgres-secure.json
+          receipt_code=$?
+          set -e
+          test "$receipt_code" -eq 2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: postgres-16-evidence
+          path: reports/postgres-secure.json
+          retention-days: 7
