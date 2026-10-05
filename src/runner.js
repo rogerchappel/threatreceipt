@@ -1,8 +1,8 @@
 import http from 'node:http';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-const toolVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
-const adapterDigest = createHash('sha256').update(readFileSync(new URL('./fixture.js', import.meta.url))).digest('hex');
+export const toolVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+const adapterDigest = createHash('sha256').update(readFileSync(new URL('./fixture.js', import.meta.url))).update(readFileSync(new URL('./runner.js', import.meta.url))).digest('hex');
 const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])])) : value;
 const exactKeys = (value, keys) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every(k => Object.hasOwn(value, k));
 import { CHECKS } from './manifest.js';
@@ -42,7 +42,10 @@ export async function runChecks(manifest, origin, execute, context = {}) {
   for (const threat of manifest.threats) {
     const result = { threat: threat.id, check: threat.check, invariant: CHECKS[threat.check], status: 'inconclusive', evidence: 'Not executed (dry run).' };
     if (execute) {
-      if (['postgres-rls', 'agent-injection'].includes(threat.check)) {
+      if (threat.check === 'postgres-rls' && context.postgresReport) {
+        for (const item of context.postgresReport.checks) results.push({threat: `${threat.id}:${item.id}`, check: threat.check, invariant: CHECKS[threat.check], status: item.status, evidence: item.evidence});
+        continue;
+      } else if (['postgres-rls', 'agent-injection'].includes(threat.check)) {
         result.evidence = 'Adapter unavailable; no coverage claimed.';
       } else {
         try {
@@ -70,6 +73,6 @@ export async function runChecks(manifest, origin, execute, context = {}) {
     if (!results.some(r => r.check === check)) results.push({threat: 'coverage-' + check, check, invariant: CHECKS[check], status:'inconclusive', evidence:'Adapter unavailable; no coverage claimed.'});
   }
   const summary = Object.fromEntries(['pass', 'fail', 'inconclusive'].map(s => [s, results.filter(r => r.status === s).length]));
-  return { schemaVersion: 2, provenance: { tool: { name: 'threatreceipt', version: toolVersion }, manifestSha256: createHash('sha256').update(JSON.stringify(canonical(manifest))).digest('hex'), adapters: [{ name: 'http-fixture', fixture: context.httpFixture ?? 'unspecified', sourceSha256: adapterDigest }], ...(context.applicationCommit ? {applicationCommit: {value: context.applicationCommit, independentlyVerified: false}} : {}) }, feature: manifest.feature, mode: execute ? 'executed' : 'dry-run', summary, results };
+  return { schemaVersion: 2, provenance: { tool: { name: 'threatreceipt', version: toolVersion }, manifestSha256: createHash('sha256').update(JSON.stringify(canonical(manifest))).digest('hex'), adapters: [{ name: 'http-fixture', fixture: context.httpFixture ?? 'unspecified', sourceSha256: adapterDigest }, ...(context.postgresReport ? [context.postgresReport.provenance] : context.postgresPlanned ? [context.postgresPlanned] : [])], ...(context.applicationCommit ? {applicationCommit: {value: context.applicationCommit, independentlyVerified: false}} : {}) }, feature: manifest.feature, mode: execute ? 'executed' : 'dry-run', summary, results };
 }
 export function exitCode(report) { return report.summary.fail ? 1 : report.summary.inconclusive ? 2 : 0; }
