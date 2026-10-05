@@ -3,11 +3,13 @@
 ## 0.2.0 — draft, unreleased
 
 - Real PostgreSQL 16 RLS checks: both tenants, CRUD, reassignment, in-transaction state and rollback verification.
-- Restricted opt-in reviewed-policy SQL on a documented fixed table contract.
+- External/reviewed SQL disabled pending independent privilege-boundary validation.
 - Private disposable cluster lifecycle, bounded execution and explicit cleanup evidence.
 - Exact owner HTTP response shapes; reserved generated IDs.
 - Receipt schema 2 with tool, manifest, adapter and fixture provenance.
-- Pinned PostgreSQL CI runtime and role/timeout/crash/mutation acceptance tests.
+- PostgreSQL 16.15+ floor for server/client tools and pinned 16.15 CI runtime.
+- Bundled fixture, role, crash, cleanup and subprocess-bound acceptance tests.
+- Non-superuser observer, bootstrap login disabled before policy load, and catalog-only fixture guards.
 
 ## 0.1.0 — unreleased
 
