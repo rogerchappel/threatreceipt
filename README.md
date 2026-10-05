@@ -4,7 +4,7 @@ Feature → threat → invariant → test → fix → evidence.
 
 A small, deterministic security test kit and teaching CLI for the ShipMode community. Version 0.2 runs **real HTTP requests against an owned synthetic loopback fixture**, mapping each result to an explicit threat. No LLM, API keys, cloud graders or runtime dependencies.
 
-**This version does not test your application.** Its HTTP checks use a bundled two-tenant read-only API; its database adapter can exercise a reviewed policy adapted to a narrow synthetic table contract. An optional adapter runs actual PostgreSQL RLS assertions in a disposable cluster, including an opt-in reviewed-policy fixture. Agent prompt-injection coverage remains inconclusive. It is not a penetration tester, SQL injection scanner, or security certification.
+**This version does not test your application.** Its HTTP checks use a bundled two-tenant read-only API; its database adapter checks only bundled synthetic policies. External/reviewed SQL is disabled pending independent privilege-boundary review. An optional adapter runs actual PostgreSQL RLS assertions in a disposable cluster, using bundled secure, permissive and deny-all policies. Agent prompt-injection coverage remains inconclusive. It is not a penetration tester, SQL injection scanner, or security certification.
 
 ## Quickstart
 
@@ -47,7 +47,7 @@ The intentionally vulnerable profile ignores identity, ownership and lookup filt
 node bin/threatreceipt.js run examples/shortlist.json --postgres secure --execute
 ```
 
-Requires existing PostgreSQL 16 binaries. Expected: 25 passes and one inconclusive agent check, exit 2. The runner owns the temporary cluster and never uses existing databases or production credentials. [Database adapter instructions](docs/postgres.md) cover both-tenant CRUD, mutation controls, trusted reviewed SQL, cleanup and the exact application-integration limits.
+Requires existing PostgreSQL 16.15+ binaries in the 16.x series. Expected: 25 passes and one inconclusive agent check, exit 2. The runner owns the temporary cluster and never uses existing databases or production credentials. [Database adapter instructions](docs/postgres.md) cover both-tenant CRUD, mutation controls, cleanup, the patch floor and the unavailable application-integration boundary.
 
 ## Evidence and automation
 
