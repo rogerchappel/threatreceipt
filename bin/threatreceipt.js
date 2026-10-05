@@ -10,8 +10,8 @@ import { formatReport } from '../src/reports.js';
 const usage = `ThreatReceipt ${toolVersion}
 Usage: threatreceipt run MANIFEST [--fixture secure|vulnerable] [--format human|json|junit] [--execute]
 Default: validate and plan only. --execute starts an owned synthetic loopback fixture.
-Optional: --postgres secure|permissive|deny-all|reviewed
-Reviewed policy SQL: --fixture-root DIR --reviewed-sql RELATIVE.sql --accept-reviewed-sql
+Optional: --postgres secure|permissive|deny-all
+External/reviewed SQL execution is disabled pending independent security review.
 Provenance: --application-commit FULL_HEX_REVISION (declared, not independently verified)
 No existing database targets, credentials, shell commands or production probes are supported.
 Exit codes: 0 complete pass, 1 failed invariant, 2 inconclusive, 64 invalid input.
