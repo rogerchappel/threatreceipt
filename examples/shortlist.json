@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "feature": "read-shortlist",
+  "threats": [
+    {"id": "owner-access", "check": "owner-read"},
+    {"id": "tenant-isolation", "check": "cross-tenant-read"},
+    {"id": "authentication", "check": "anonymous-read"},
+    {"id": "hostile-record-key", "check": "literal-input"},
+    {"id": "database-isolation", "check": "postgres-rls"},
+    {"id": "untrusted-agent-content", "check": "agent-injection"}
+  ]
+}
