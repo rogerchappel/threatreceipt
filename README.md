@@ -2,9 +2,9 @@
 
 Feature → threat → invariant → test → fix → evidence.
 
-A small, deterministic security test kit and teaching CLI for the ShipMode community. Version 0.1 runs **real HTTP requests against an owned synthetic loopback fixture**, mapping each result to an explicit threat. No LLM, API keys, cloud graders or runtime dependencies.
+A small, deterministic security test kit and teaching CLI for the ShipMode community. Version 0.2 runs **real HTTP requests against an owned synthetic loopback fixture**, mapping each result to an explicit threat. No LLM, API keys, cloud graders or runtime dependencies.
 
-**This version does not test your application.** It teaches and validates the workflow using a bundled two-tenant read-only API. PostgreSQL RLS and agent prompt-injection coverage are explicitly inconclusive. It is not a penetration tester, SQL injection scanner, or security certification.
+**This version does not test your application.** Its HTTP checks use a bundled two-tenant read-only API; its database adapter can exercise a reviewed policy adapted to a narrow synthetic table contract. An optional adapter runs actual PostgreSQL RLS assertions in a disposable cluster, including an opt-in reviewed-policy fixture. Agent prompt-injection coverage remains inconclusive. It is not a penetration tester, SQL injection scanner, or security certification.
 
 ## Quickstart
 
@@ -30,7 +30,7 @@ node bin/threatreceipt.js run examples/shortlist.json --fixture secure --execute
 | Vulnerable | 1 | 3 | 2 | 1 |
 | Secure | 4 | 0 | 2 | 2 |
 
-The secure fixture still exits 2: its four HTTP checks pass, but database and agent coverage remains missing. Code 0 is reserved for complete coverage; the current version never claims it. Do not use `|| true` to turn this result into a security gate success.
+The secure fixture still exits 2: its four HTTP checks pass, but database and agent coverage remains missing unless the PostgreSQL adapter is selected (agent coverage still remains missing). Code 0 is reserved for complete coverage; the current version never claims it. Do not use `|| true` to turn this result into a security gate success.
 
 ## What is tested
 
@@ -41,6 +41,14 @@ The secure fixture still exits 2: its four HTTP checks pass, but database and ag
 
 The intentionally vulnerable profile ignores identity, ownership and lookup filtering. The secure profile implements each corresponding guard in [src/fixture.js](src/fixture.js). Demo identity headers are not production authentication.
 
+## Actual PostgreSQL policy tests
+
+```sh
+node bin/threatreceipt.js run examples/shortlist.json --postgres secure --execute
+```
+
+Requires existing PostgreSQL 16 binaries. Expected: 25 passes and one inconclusive agent check, exit 2. The runner owns the temporary cluster and never uses existing databases or production credentials. [Database adapter instructions](docs/postgres.md) cover both-tenant CRUD, mutation controls, trusted reviewed SQL, cleanup and the exact application-integration limits.
+
 ## Evidence and automation
 
 ```sh
@@ -49,7 +57,7 @@ node bin/threatreceipt.js run examples/shortlist.json --execute --format json > 
 node bin/threatreceipt.js run examples/shortlist.json --execute --format junit > reports/secure.xml
 ```
 
-These commands return 2 as documented. Reports contain stable threat IDs, fixed invariants, expected/observed statuses, response-contract outcomes and summary counts. Raw bodies, request headers, target ports, machine paths and error stacks are excluded. Feature and threat labels are included: never put secrets in labels. JUnit represents inconclusive coverage as skipped; consumers must inspect skipped counts and the CLI exit code.
+These commands return 2 as documented. Receipt schema version 2 includes tool version, canonical-manifest SHA-256, adapter source digests, selected fixture identity, fixed invariants and outcomes. PostgreSQL receipts also include the executed SQL digest and runtime version. An optional application revision is explicitly marked as a user-declared reference. Raw bodies, request headers, target ports, machine paths and error stacks are excluded. Feature and threat labels are included: never put secrets in labels. JUnit represents inconclusive coverage as skipped; consumers must inspect skipped counts and the CLI exit code.
 
 See [manifest reference](docs/manifest.md), [course exercise](docs/lesson.md), [agent skill](SKILL.md), and [adapter research](docs/adapters.md).
 
